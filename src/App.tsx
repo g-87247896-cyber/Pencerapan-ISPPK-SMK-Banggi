@@ -12,6 +12,7 @@ import { PetiMesejGuru } from './components/PetiMesejGuru';
 import { LoginPentadbir } from './components/LoginPentadbir';
 import { ModalProfilPentadbir } from './components/ModalProfilPentadbir';
 import { UploadTandatanganDigital } from './components/UploadTandatanganDigital';
+import { GitHubBackendConfig } from './components/GitHubBackendConfig';
 import { apiService } from './services/api';
 import {
   FileEdit,
@@ -34,10 +35,11 @@ import {
   ChevronDown,
   LogIn,
   Lock,
+  Github,
 } from 'lucide-react';
 
 export default function App() {
-  const [activeView, setActiveView] = useState<'borang' | 'senarai' | 'statistik' | 'mesej' | 'tt-digital' | 'panduan' | 'login'>('borang');
+  const [activeView, setActiveView] = useState<'borang' | 'senarai' | 'statistik' | 'mesej' | 'tt-digital' | 'github' | 'panduan' | 'login'>('borang');
   const [editingRecord, setEditingRecord] = useState<PencerapanRecord | null>(null);
   const [printingRecord, setPrintingRecord] = useState<PencerapanRecord | null>(null);
   const [sharingRecord, setSharingRecord] = useState<PencerapanRecord | null>(null);
@@ -425,6 +427,18 @@ export default function App() {
             </button>
 
             <button
+              onClick={() => setActiveView('github')}
+              className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 whitespace-nowrap transition-colors ${
+                activeView === 'github'
+                  ? 'bg-indigo-700 text-white font-semibold shadow-xs'
+                  : 'text-slate-300 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              <Github className="w-3.5 h-3.5 text-amber-300" />
+              Backend GitHub
+            </button>
+
+            <button
               onClick={() => setActiveView('panduan')}
               className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 whitespace-nowrap transition-colors ${
                 activeView === 'panduan'
@@ -478,6 +492,8 @@ export default function App() {
             />
           </div>
         )}
+
+        {activeView === 'github' && <GitHubBackendConfig />}
 
         {activeView === 'panduan' && <PanduanRubrikView />}
 

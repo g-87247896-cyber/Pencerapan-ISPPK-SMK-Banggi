@@ -3,6 +3,23 @@ import { PencerapanRecord, TeacherMessage } from '../types/isppk';
 const LOCAL_STORAGE_KEY = 'smk_banggi_pencerapan_cache_v1';
 const DRAFT_KEY = 'smk_banggi_current_draft_v1';
 
+export interface GitHubConfigResponse {
+  enabled: boolean;
+  token?: string;
+  tokenMasked?: string;
+  hasToken: boolean;
+  owner: string;
+  repo: string;
+  branch: string;
+  pencerapanPath: string;
+  messagesPath: string;
+  autoSync: boolean;
+  syncStatus: 'connected' | 'disconnected' | 'error';
+  lastSyncTime?: string;
+  lastCommitSha?: string;
+  lastCommitMessage?: string;
+}
+
 export interface StatsResponse {
   total: number;
   selesai: number;
@@ -397,6 +414,62 @@ export const apiService = {
     try {
       localStorage.removeItem(DRAFT_KEY);
     } catch {}
+  },
+
+  // GitHub Backend Methods
+  async getGitHubConfig(): Promise<GitHubConfigResponse | null> {
+    try {
+      const res = await fetch('/api/github/config');
+      if (!res.ok) return null;
+      const json = await res.json();
+      return json.config || null;
+    } catch {
+      return null;
+    }
+  },
+
+  async saveGitHubConfig(config: Partial<GitHubConfigResponse>): Promise<{ success: boolean; message?: string; error?: string }> {
+    try {
+      const res = await fetch('/api/github/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config),
+      });
+      return await res.json();
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Gagal menyimpan tetapan GitHub' };
+    }
+  },
+
+  async testGitHubConnection(config: Partial<GitHubConfigResponse>): Promise<{ success: boolean; message?: string; error?: string; authenticatedUser?: string; repo?: string }> {
+    try {
+      const res = await fetch('/api/github/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config),
+      });
+      return await res.json();
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Gagal menguji sambungan GitHub' };
+    }
+  },
+
+  async pushToGitHub(): Promise<{ success: boolean; message?: string; error?: string; lastSyncTime?: string }> {
+    try {
+      const res = await fetch('/api/github/push', { method: 'POST' });
+      return await res.json();
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Gagal muat naik ke GitHub' };
+    }
+  },
+
+  async pullFromGitHub(): Promise<{ success: boolean; message?: string; error?: string; count?: number; lastSyncTime?: string }> {
+    try {
+      const res = await fetch('/api/github/pull', { method: 'POST' });
+      return await res.json();
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Gagal menarik data dari GitHub' };
+    }
   },
 };
 

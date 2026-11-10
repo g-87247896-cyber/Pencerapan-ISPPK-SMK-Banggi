@@ -22,6 +22,160 @@ if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 
+// GitHub Backend Configuration & API Types
+export interface GitHubConfig {
+  enabled: boolean;
+  token: string;
+  owner: string;
+  repo: string;
+  branch: string;
+  pencerapanPath: string;
+  messagesPath: string;
+  autoSync: boolean;
+  lastSyncTime?: string;
+  syncStatus?: 'connected' | 'disconnected' | 'syncing' | 'error';
+  lastError?: string;
+}
+
+const GITHUB_CONFIG_FILE = path.join(DATA_DIR, 'github_config.json');
+
+function readGitHubConfig(): GitHubConfig {
+  try {
+    if (fs.existsSync(GITHUB_CONFIG_FILE)) {
+      const data = fs.readFileSync(GITHUB_CONFIG_FILE, 'utf-8');
+      return JSON.parse(data);
+    }
+  } catch (err) {
+    console.error('Error reading GitHub config file:', err);
+  }
+  return {
+    enabled: false,
+    token: process.env.GITHUB_TOKEN || '',
+    owner: process.env.GITHUB_OWNER || '',
+    repo: process.env.GITHUB_REPO || 'smk-banggi-isppk-db',
+    branch: process.env.GITHUB_BRANCH || 'main',
+    pencerapanPath: 'data/pencerapan_smk_banggi.json',
+    messagesPath: 'data/mesej_guru_smk_banggi.json',
+    autoSync: true,
+    syncStatus: 'disconnected',
+  };
+}
+
+function writeGitHubConfig(config: GitHubConfig): void {
+  try {
+    fs.writeFileSync(GITHUB_CONFIG_FILE, JSON.stringify(config, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Error writing GitHub config file:', err);
+  }
+}
+
+async function pushFileToGitHub(
+  config: GitHubConfig,
+  filePathInRepo: string,
+  contentJson: any,
+  commitMessage: string
+): Promise<{ success: boolean; sha?: string; error?: string }> {
+  if (!config.token || !config.owner || !config.repo) {
+    return { success: false, error: 'Tetapan GitHub belum lengkap (token, owner, atau repo tidak diisi)' };
+  }
+
+  try {
+    const cleanRepoPath = filePathInRepo.replace(/^\/+/, '');
+    const url = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/${cleanRepoPath}`;
+    const headers: Record<string, string> = {
+      Authorization: `token ${config.token}`,
+      Accept: 'application/vnd.github.v3+json',
+      'User-Agent': 'SMK-Banggi-ISPPK-App',
+    };
+
+    // 1. Get existing file SHA if present
+    let sha: string | undefined = undefined;
+    try {
+      const existingRes = await fetch(`${url}?ref=${config.branch || 'main'}`, { headers });
+      if (existingRes.ok) {
+        const existingData: any = await existingRes.json();
+        sha = existingData.sha;
+      }
+    } catch {
+      // File doesn't exist yet, which is fine
+    }
+
+    // 2. Prepare payload
+    const jsonString = JSON.stringify(contentJson, null, 2);
+    const contentBase64 = Buffer.from(jsonString, 'utf-8').toString('base64');
+
+    const bodyPayload: any = {
+      message: commitMessage,
+      content: contentBase64,
+      branch: config.branch || 'main',
+    };
+    if (sha) {
+      bodyPayload.sha = sha;
+    }
+
+    // 3. Put content
+    const putRes = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        ...headers,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(bodyPayload),
+    });
+
+    if (!putRes.ok) {
+      const errJson: any = await putRes.json().catch(() => ({}));
+      return {
+        success: false,
+        error: errJson.message || `Ralat GitHub API: ${putRes.status} ${putRes.statusText}`,
+      };
+    }
+
+    const resJson: any = await putRes.json();
+    return { success: true, sha: resJson.content?.sha };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Gagal menghubungi GitHub API' };
+  }
+}
+
+async function pullFileFromGitHub(
+  config: GitHubConfig,
+  filePathInRepo: string
+): Promise<{ success: boolean; data?: any; error?: string }> {
+  if (!config.token || !config.owner || !config.repo) {
+    return { success: false, error: 'Tetapan GitHub belum lengkap' };
+  }
+
+  try {
+    const cleanRepoPath = filePathInRepo.replace(/^\/+/, '');
+    const url = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/${cleanRepoPath}?ref=${config.branch || 'main'}`;
+    const headers: Record<string, string> = {
+      Authorization: `token ${config.token}`,
+      Accept: 'application/vnd.github.v3+json',
+      'User-Agent': 'SMK-Banggi-ISPPK-App',
+    };
+
+    const res = await fetch(url, { headers });
+    if (!res.ok) {
+      const errJson: any = await res.json().catch(() => ({}));
+      return {
+        success: false,
+        error: errJson.message || `Fail tidak dijumpai di GitHub: ${res.status}`,
+      };
+    }
+
+    const json: any = await res.json();
+    if (json.content) {
+      const decoded = Buffer.from(json.content, 'base64').toString('utf-8');
+      const parsed = JSON.parse(decoded);
+      return { success: true, data: parsed };
+    }
+    return { success: false, error: 'Kandungan fail kosong' };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Gagal menarik data dari GitHub' };
+  }
+}
+
 export interface PencerapanRecord {
   id: string;
   // Bahagian A: Pencerap
@@ -182,6 +336,34 @@ function readDatabase(): PencerapanRecord[] {
 function writeDatabase(records: PencerapanRecord[]): void {
   try {
     fs.writeFileSync(DB_FILE, JSON.stringify(records, null, 2), 'utf-8');
+
+    // Trigger auto-sync to GitHub if configured
+    const ghConfig = readGitHubConfig();
+    if (ghConfig.enabled && ghConfig.token && ghConfig.autoSync && ghConfig.owner && ghConfig.repo) {
+      setTimeout(async () => {
+        try {
+          const res = await pushFileToGitHub(
+            ghConfig,
+            ghConfig.pencerapanPath || 'data/pencerapan_smk_banggi.json',
+            records,
+            `[Auto-Sync] Kemas kini rekod pencerapan SMK Banggi (${records.length} rekod)`
+          );
+          if (res.success) {
+            ghConfig.lastSyncTime = new Date().toISOString();
+            ghConfig.syncStatus = 'connected';
+            ghConfig.lastError = undefined;
+          } else {
+            ghConfig.syncStatus = 'error';
+            ghConfig.lastError = res.error;
+          }
+          writeGitHubConfig(ghConfig);
+        } catch (e: any) {
+          ghConfig.syncStatus = 'error';
+          ghConfig.lastError = e.message;
+          writeGitHubConfig(ghConfig);
+        }
+      }, 100);
+    }
   } catch (err) {
     console.error('Error writing to database file:', err);
     throw err;
@@ -1401,6 +1583,224 @@ app.delete('/api/messages/:id', (req: Request, res: Response) => {
     res.json({ success: true, message: 'Mesej berjaya dipadam' });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Gagal memadam mesej' });
+  }
+});
+
+// GitHub Backend REST API Endpoints
+
+// GET /api/github/config - Get configuration and masked token status
+app.get('/api/github/config', (_req: Request, res: Response) => {
+  try {
+    const config = readGitHubConfig();
+    const maskedToken = config.token
+      ? config.token.length > 8
+        ? `${config.token.slice(0, 4)}****${config.token.slice(-4)}`
+        : '********'
+      : '';
+
+    res.json({
+      success: true,
+      config: {
+        ...config,
+        tokenMasked: maskedToken,
+        hasToken: !!config.token,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Ralat membaca tetapan GitHub' });
+  }
+});
+
+// POST /api/github/config - Save configuration
+app.post('/api/github/config', (req: Request, res: Response) => {
+  try {
+    const current = readGitHubConfig();
+    const { token, owner, repo, branch, pencerapanPath, messagesPath, autoSync, enabled } = req.body;
+
+    const updated: GitHubConfig = {
+      ...current,
+      enabled: enabled !== undefined ? !!enabled : true,
+      token: token && !token.includes('*') ? token.trim() : current.token,
+      owner: owner !== undefined ? owner.trim() : current.owner,
+      repo: repo !== undefined ? repo.trim() : current.repo,
+      branch: branch !== undefined ? branch.trim() : current.branch || 'main',
+      pencerapanPath: pencerapanPath || current.pencerapanPath || 'data/pencerapan_smk_banggi.json',
+      messagesPath: messagesPath || current.messagesPath || 'data/mesej_guru_smk_banggi.json',
+      autoSync: autoSync !== undefined ? !!autoSync : true,
+    };
+
+    writeGitHubConfig(updated);
+    res.json({ success: true, message: 'Tetapan GitHub Backend berjaya disimpan', config: updated });
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'Gagal menyimpan tetapan GitHub' });
+  }
+});
+
+// POST /api/github/test - Test connection to GitHub API
+app.post('/api/github/test', async (req: Request, res: Response) => {
+  try {
+    const currentConfig = readGitHubConfig();
+    const token = req.body.token && !req.body.token.includes('*') ? req.body.token.trim() : currentConfig.token;
+    const owner = req.body.owner !== undefined ? req.body.owner.trim() : currentConfig.owner;
+    const repo = req.body.repo !== undefined ? req.body.repo.trim() : currentConfig.repo;
+
+    if (!token) {
+      res.status(400).json({ success: false, error: 'Sila masukkan Token Akses Peribadi (PAT) GitHub.' });
+      return;
+    }
+
+    // 1. Verify user token
+    const userRes = await fetch('https://api.github.com/user', {
+      headers: {
+        Authorization: `token ${token}`,
+        Accept: 'application/vnd.github.v3+json',
+        'User-Agent': 'SMK-Banggi-ISPPK-App',
+      },
+    });
+
+    if (!userRes.ok) {
+      res.status(401).json({
+        success: false,
+        error: 'Token GitHub tidak sah atau telah tamat tempoh. Sila semak semula Token Akses Peribadi (PAT) anda.',
+      });
+      return;
+    }
+
+    const userData: any = await userRes.json();
+    const authenticatedUser = userData.login;
+
+    // 2. Verify repo access if owner & repo provided
+    let repoInfo: any = null;
+    if (owner && repo) {
+      const repoRes = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
+        headers: {
+          Authorization: `token ${token}`,
+          Accept: 'application/vnd.github.v3+json',
+          'User-Agent': 'SMK-Banggi-ISPPK-App',
+        },
+      });
+
+      if (!repoRes.ok) {
+        res.status(404).json({
+          success: false,
+          error: `Akaun GitHub (${authenticatedUser}) berjaya disahkan, tetapi repositori "${owner}/${repo}" tidak dijumpai atau tiada kebenaran akses. Sila pastikan repo wujud di GitHub.`,
+          authenticatedUser,
+        });
+        return;
+      }
+
+      repoInfo = await repoRes.json();
+    }
+
+    // Update config status
+    currentConfig.syncStatus = 'connected';
+    currentConfig.lastError = undefined;
+    writeGitHubConfig(currentConfig);
+
+    res.json({
+      success: true,
+      message: `Sambungan ke GitHub berjaya! Disahkan sebagai ${authenticatedUser}${repoInfo ? ` (Repo: ${repoInfo.full_name})` : ''}`,
+      authenticatedUser,
+      repo: repoInfo ? repoInfo.full_name : null,
+      privateRepo: repoInfo ? repoInfo.private : false,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Ralat menguji sambungan GitHub' });
+  }
+});
+
+// POST /api/github/push - Manually push database to GitHub
+app.post('/api/github/push', async (_req: Request, res: Response) => {
+  try {
+    const config = readGitHubConfig();
+    const records = readDatabase();
+    const messages = readMessages();
+
+    if (!config.token || !config.owner || !config.repo) {
+      res.status(400).json({ success: false, error: 'Sila lengkapkan tetapan Token, Owner dan Repo GitHub dahulu.' });
+      return;
+    }
+
+    const pushRecordsRes = await pushFileToGitHub(
+      config,
+      config.pencerapanPath || 'data/pencerapan_smk_banggi.json',
+      records,
+      `[Push Manual] Penyata Pencerapan SMK Banggi (${records.length} rekod)`
+    );
+
+    if (!pushRecordsRes.success) {
+      res.status(500).json({ success: false, error: `Gagal muat naik rekod pencerapan: ${pushRecordsRes.error}` });
+      return;
+    }
+
+    // Also push messages
+    await pushFileToGitHub(
+      config,
+      config.messagesPath || 'data/mesej_guru_smk_banggi.json',
+      messages,
+      `[Push Manual] Peti Mesej Guru SMK Banggi (${messages.length} mesej)`
+    );
+
+    config.lastSyncTime = new Date().toISOString();
+    config.syncStatus = 'connected';
+    config.lastError = undefined;
+    writeGitHubConfig(config);
+
+    res.json({
+      success: true,
+      message: `Semua ${records.length} rekod pencerapan dan ${messages.length} mesej guru berjaya dimuat naik ke GitHub (${config.owner}/${config.repo})!`,
+      lastSyncTime: config.lastSyncTime,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Gagal muat naik ke GitHub' });
+  }
+});
+
+// POST /api/github/pull - Pull database from GitHub
+app.post('/api/github/pull', async (_req: Request, res: Response) => {
+  try {
+    const config = readGitHubConfig();
+
+    if (!config.token || !config.owner || !config.repo) {
+      res.status(400).json({ success: false, error: 'Sila lengkapkan tetapan Token, Owner dan Repo GitHub dahulu.' });
+      return;
+    }
+
+    const pullRecordsRes = await pullFileFromGitHub(
+      config,
+      config.pencerapanPath || 'data/pencerapan_smk_banggi.json'
+    );
+
+    if (!pullRecordsRes.success || !Array.isArray(pullRecordsRes.data)) {
+      res.status(500).json({ success: false, error: `Gagal menarik rekod pencerapan dari GitHub: ${pullRecordsRes.error}` });
+      return;
+    }
+
+    // Save pulled records locally
+    writeDatabase(pullRecordsRes.data);
+
+    // Try pulling messages
+    const pullMessagesRes = await pullFileFromGitHub(
+      config,
+      config.messagesPath || 'data/mesej_guru_smk_banggi.json'
+    );
+    if (pullMessagesRes.success && Array.isArray(pullMessagesRes.data)) {
+      writeMessages(pullMessagesRes.data);
+    }
+
+    config.lastSyncTime = new Date().toISOString();
+    config.syncStatus = 'connected';
+    config.lastError = undefined;
+    writeGitHubConfig(config);
+
+    res.json({
+      success: true,
+      message: `Pangkalan data berjaya ditarik dan disegerakkan daripada GitHub (${config.owner}/${config.repo})! Total: ${pullRecordsRes.data.length} rekod.`,
+      count: pullRecordsRes.data.length,
+      lastSyncTime: config.lastSyncTime,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message || 'Gagal menarik data dari GitHub' });
   }
 });
 
