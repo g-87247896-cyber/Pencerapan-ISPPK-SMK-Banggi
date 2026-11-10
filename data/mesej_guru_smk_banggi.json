@@ -1,0 +1,38 @@
+[
+  {
+    "id": "msg-001",
+    "pencerapanId": "smkb-2026-002",
+    "namaGuru": "Pn. Siti Nurhaliza binti Mat Nor",
+    "emelGuru": "g-sitinurhaliza@moe-dl.edu.my",
+    "namaPencerap": "En. Roslan bin Awang",
+    "jawatanPencerap": "Penolong Kanan Pentadbiran (PK1)",
+    "tarikhPencerapan": "2026-02-12",
+    "mataPelajaran": "Sains",
+    "tingkatan": "Tingkatan 4 Al-Farabi",
+    "tajukTopik": "Bab 4: Tenaga Lestari dan Pemuliharaan Alam",
+    "skorKeseluruhan": 90,
+    "peratusPencapaian": 90,
+    "tahapPencapaian": "Cemerlang",
+    "domainScores": {
+      "perancangan": 19,
+      "pelaksanaan": 23,
+      "refleksi": 5,
+      "murid": 43
+    },
+    "tajukMesej": "Dapatan Pencerapan PdP KBAT 2026: Sains Tingkatan 4 Al-Farabi",
+    "kandunganMesej": "Tahniah Pn. Siti Nurhaliza atas sesi PdP Sains yang sangat cemerlang (90%). Murid menunjukkan penglibatan aktif membincangkan tenaga lestari dengan penggunaan Peta Pemikiran i-Think yang amat berkesan. Teruskan usaha murni ini!",
+    "kekuatan": [
+      "Penggunaan Peta Buih Berganda (i-Think) yang merangsang daya analitis murid.",
+      "Aktiviti pembelajaran berpusatkan murid dengan perbincangan meja bulat.",
+      "Suasana bilik darjah yang sangat kondusif dan menyeronokkan."
+    ],
+    "cadanganPenambahbaikan": [
+      "Sediakan kad tugasan perbezaan aras untuk murid yang memerlukan bimbingan lanjut.",
+      "Tingkatkan teknik penyoalan mencapah bagi mencetuskan inovasi penyelesaian isu tempatan Pulau Banggi."
+    ],
+    "statusBaca": true,
+    "tarikhDihantar": "2026-02-12T11:20:00.000Z",
+    "tarikhDibaca": "2026-02-12T14:30:00.000Z",
+    "maklumBalasGuru": "Terima kasih En. Roslan atas bimbingan dan maklum balas positif. Saya akan integrasikan kad tugasan berbeza aras dalam topik seterusnya."
+  }
+]

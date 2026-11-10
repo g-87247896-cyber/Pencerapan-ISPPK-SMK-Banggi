@@ -1,0 +1,6 @@
+{
+  "name": "e-Pencerapan ISPPK 2026 SMK Banggi",
+  "description": "Sistem Pengisian Skor dan Pengurusan Instrumen Standard Penilaian Pembudayaan KBAT (ISPPK) PdP 2026 SMK Banggi beserta evidens gambar dan pangkalan data sekolah.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
