@@ -30,7 +30,7 @@ export const PanduanRubrikView: React.FC = () => {
             </p>
           </div>
           <a
-            href="/assets/aistudio/V2_Borang_Instrumen_ISPPK_2026__Guru___Murid__pdf__1__23969c42.pdf"
+            href="./assets/aistudio/V2_Borang_Instrumen_ISPPK_2026__Guru___Murid__pdf__1__23969c42.pdf"
             target="_blank"
             rel="noreferrer"
             className="px-3.5 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 rounded-xl flex items-center gap-1.5 transition-colors self-start sm:self-auto"

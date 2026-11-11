@@ -192,7 +192,7 @@ export default function App() {
             <div className="flex items-center gap-3.5">
               <div className="w-11 h-11 rounded-2xl bg-white p-1 border-2 border-amber-400/80 shadow-md flex items-center justify-center flex-shrink-0">
                 <img
-                  src="/assets/aistudio/Logo_SMK_Banggi_c52e1e56.png"
+                  src="./assets/aistudio/Logo_SMK_Banggi_c52e1e56.png"
                   alt="Lencana SMK Banggi"
                   className="w-full h-full object-contain"
                 />
@@ -252,7 +252,7 @@ export default function App() {
             <div className="flex items-center gap-3.5">
               <div className="w-12 h-12 rounded-2xl bg-white p-1 border-2 border-amber-400/70 shadow-md flex items-center justify-center flex-shrink-0 overflow-hidden">
                 <img
-                  src="/assets/aistudio/Logo_SMK_Banggi_c52e1e56.png"
+                  src="./assets/aistudio/Logo_SMK_Banggi_c52e1e56.png"
                   alt="Lencana SMK Banggi"
                   className="w-full h-full object-contain"
                 />
@@ -543,7 +543,7 @@ export default function App() {
             <span>PPD Kudat, Sabah</span>
             <span>•</span>
             <a
-              href="/assets/aistudio/V2_Borang_Instrumen_ISPPK_2026__Guru___Murid__pdf__1__23969c42.pdf"
+              href="./assets/aistudio/V2_Borang_Instrumen_ISPPK_2026__Guru___Murid__pdf__1__23969c42.pdf"
               target="_blank"
               rel="noreferrer"
               className="text-indigo-600 hover:underline flex items-center gap-1"

@@ -57,7 +57,7 @@ export const CetakInstrumenRasmi: React.FC<CetakInstrumenRasmiProps> = ({ record
         <div className="pb-6 border-b-2 border-slate-800 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="w-20 h-20 flex-shrink-0 flex items-center justify-center">
             <img
-              src="/assets/aistudio/Logo_SMK_Banggi_c52e1e56.png"
+              src="./assets/aistudio/Logo_SMK_Banggi_c52e1e56.png"
               alt="Lencana SMK Banggi"
               className="w-full h-full object-contain"
             />

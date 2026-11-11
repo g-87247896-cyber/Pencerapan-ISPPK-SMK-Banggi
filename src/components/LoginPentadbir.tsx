@@ -108,7 +108,7 @@ export const LoginPentadbir: React.FC<LoginPentadbirProps> = ({
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-2xl bg-white p-1.5 border-2 border-amber-400/80 shadow-lg flex items-center justify-center flex-shrink-0 overflow-hidden bg-slate-50">
                 <img
-                  src="/assets/aistudio/Logo_SMK_Banggi_c52e1e56.png"
+                  src="./assets/aistudio/Logo_SMK_Banggi_c52e1e56.png"
                   alt="Lencana SMK Banggi"
                   className="w-full h-full object-contain"
                 />

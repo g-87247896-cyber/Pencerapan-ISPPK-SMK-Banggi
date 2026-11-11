@@ -234,7 +234,7 @@ export const UploadTandatanganDigital: React.FC<UploadTandatanganDigitalProps> =
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-xl bg-white p-0.5 border border-amber-300 shadow-2xs flex items-center justify-center flex-shrink-0">
               <img
-                src="/assets/aistudio/Logo_SMK_Banggi_c52e1e56.png"
+                src="./assets/aistudio/Logo_SMK_Banggi_c52e1e56.png"
                 alt="Lencana SMK Banggi"
                 className="w-full h-full object-contain"
               />
