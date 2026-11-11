@@ -109,6 +109,18 @@ export interface DashboardReportResponse {
   };
 }
 
+// Helper to safely parse JSON responses and avoid SyntaxError: Unexpected token '<' on HTML fallbacks
+async function safeFetchJson<T = any>(res: Response): Promise<T> {
+  if (!res.ok) {
+    throw new Error(`Pelayan mengembalikan status ${res.status}`);
+  }
+  const contentType = res.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    throw new Error('Respons bukan format JSON (menerima HTML/Teks)');
+  }
+  return await res.json();
+}
+
 export const apiService = {
   // Fetch all pencerapan records
   async getPencerapanList(params?: {
@@ -127,15 +139,12 @@ export const apiService = {
       }
 
       const res = await fetch(url.toString());
-      if (!res.ok) throw new Error('Ralat tindak balas pelayan');
-      const json = await res.json();
+      const json = await safeFetchJson(res);
       if (json.data && Array.isArray(json.data)) {
         // Cache in localStorage for offline resilience
         try {
           localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(json.data));
-        } catch {
-          // Ignore quota error if storage full
-        }
+        } catch {}
         return json.data;
       }
       return [];
@@ -154,8 +163,7 @@ export const apiService = {
   async getPencerapanById(id: string): Promise<PencerapanRecord | null> {
     try {
       const res = await fetch(`/api/pencerapan/${encodeURIComponent(id)}`);
-      if (!res.ok) throw new Error('Rekod tidak dijumpai');
-      const json = await res.json();
+      const json = await safeFetchJson(res);
       return json.data || null;
     } catch {
       // Fallback to cache
@@ -180,8 +188,7 @@ export const apiService = {
         body: JSON.stringify(record),
       });
 
-      if (!res.ok) throw new Error('Gagal menyimpan ke pangkalan data sekolah');
-      const json = await res.json();
+      const json = await safeFetchJson(res);
 
       // Update local storage cache
       try {
@@ -302,8 +309,7 @@ export const apiService = {
   async getStats(): Promise<StatsResponse | null> {
     try {
       const res = await fetch('/api/stats');
-      if (res.ok) return await res.json();
-      return null;
+      return await safeFetchJson(res);
     } catch {
       return null;
     }
@@ -326,10 +332,9 @@ export const apiService = {
         });
       }
       const res = await fetch(url.toString());
-      if (!res.ok) throw new Error('Ralat memuatkan dashboard laporan');
-      return await res.json();
+      return await safeFetchJson(res);
     } catch (err) {
-      console.error('Ralat mendapatkan laporan dashboard:', err);
+      console.warn('Ralat mendapatkan laporan dashboard:', err);
       return null;
     }
   },
@@ -342,8 +347,7 @@ export const apiService = {
       if (params?.pencerapanId) url.searchParams.append('pencerapanId', params.pencerapanId);
       if (params?.unreadOnly) url.searchParams.append('unreadOnly', 'true');
       const res = await fetch(url.toString());
-      if (!res.ok) throw new Error('Ralat memuatkan mesej');
-      return await res.json();
+      return await safeFetchJson(res);
     } catch {
       return { total: 0, unreadCount: 0, data: [] };
     }
@@ -356,9 +360,9 @@ export const apiService = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(message),
       });
-      return await res.json();
-    } catch (err) {
-      return { success: false, message: 'Gagal menghantar mesej' };
+      return await safeFetchJson(res);
+    } catch (err: any) {
+      return { success: false, message: err.message || 'Gagal menghantar mesej' };
     }
   },
 
@@ -420,8 +424,7 @@ export const apiService = {
   async getGitHubConfig(): Promise<GitHubConfigResponse | null> {
     try {
       const res = await fetch('/api/github/config');
-      if (!res.ok) return null;
-      const json = await res.json();
+      const json = await safeFetchJson(res);
       return json.config || null;
     } catch {
       return null;
@@ -435,7 +438,7 @@ export const apiService = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(config),
       });
-      return await res.json();
+      return await safeFetchJson(res);
     } catch (err: any) {
       return { success: false, error: err.message || 'Gagal menyimpan tetapan GitHub' };
     }
@@ -448,7 +451,7 @@ export const apiService = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(config),
       });
-      return await res.json();
+      return await safeFetchJson(res);
     } catch (err: any) {
       return { success: false, error: err.message || 'Gagal menguji sambungan GitHub' };
     }
@@ -457,7 +460,7 @@ export const apiService = {
   async pushToGitHub(): Promise<{ success: boolean; message?: string; error?: string; lastSyncTime?: string }> {
     try {
       const res = await fetch('/api/github/push', { method: 'POST' });
-      return await res.json();
+      return await safeFetchJson(res);
     } catch (err: any) {
       return { success: false, error: err.message || 'Gagal muat naik ke GitHub' };
     }
@@ -466,7 +469,7 @@ export const apiService = {
   async pullFromGitHub(): Promise<{ success: boolean; message?: string; error?: string; count?: number; lastSyncTime?: string }> {
     try {
       const res = await fetch('/api/github/pull', { method: 'POST' });
-      return await res.json();
+      return await safeFetchJson(res);
     } catch (err: any) {
       return { success: false, error: err.message || 'Gagal menarik data dari GitHub' };
     }
