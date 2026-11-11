@@ -138,6 +138,68 @@ async function pushFileToGitHub(
   }
 }
 
+async function pushRawTextToGitHub(
+  config: GitHubConfig,
+  filePathInRepo: string,
+  rawTextContent: string,
+  commitMessage: string
+): Promise<{ success: boolean; sha?: string; error?: string }> {
+  if (!config.token || !config.owner || !config.repo) {
+    return { success: false, error: 'Tetapan GitHub tidak lengkap.' };
+  }
+
+  try {
+    const cleanRepoPath = filePathInRepo.replace(/^\/+/, '');
+    const url = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/${cleanRepoPath}`;
+    const headers: Record<string, string> = {
+      Authorization: `token ${config.token}`,
+      Accept: 'application/vnd.github.v3+json',
+      'User-Agent': 'SMK-Banggi-ISPPK-App',
+    };
+
+    let sha: string | undefined = undefined;
+    try {
+      const existingRes = await fetch(`${url}?ref=${config.branch || 'main'}`, { headers });
+      if (existingRes.ok) {
+        const existingData: any = await existingRes.json();
+        sha = existingData.sha;
+      }
+    } catch {}
+
+    const contentBase64 = Buffer.from(rawTextContent, 'utf-8').toString('base64');
+    const bodyPayload: any = {
+      message: commitMessage,
+      content: contentBase64,
+      branch: config.branch || 'main',
+    };
+    if (sha) {
+      bodyPayload.sha = sha;
+    }
+
+    const putRes = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        ...headers,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(bodyPayload),
+    });
+
+    if (!putRes.ok) {
+      const errJson: any = await putRes.json().catch(() => ({}));
+      return {
+        success: false,
+        error: errJson.message || `Ralat GitHub API: ${putRes.status} ${putRes.statusText}`,
+      };
+    }
+
+    const resJson: any = await putRes.json();
+    return { success: true, sha: resJson.content?.sha };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Gagal menghubungi GitHub API' };
+  }
+}
+
 async function pullFileFromGitHub(
   config: GitHubConfig,
   filePathInRepo: string
@@ -1740,6 +1802,23 @@ app.post('/api/github/push', async (_req: Request, res: Response) => {
       messages,
       `[Push Manual] Peti Mesej Guru SMK Banggi (${messages.length} mesej)`
     );
+
+    // Sync package-lock.json & GitHub Actions workflow if available to fix CI build
+    try {
+      const lockfilePath = path.resolve(__dirname, 'package-lock.json');
+      if (fs.existsSync(lockfilePath)) {
+        const lockContent = fs.readFileSync(lockfilePath, 'utf-8');
+        await pushRawTextToGitHub(config, 'package-lock.json', lockContent, '[Push Auto] Kemas kini package-lock.json');
+      }
+
+      const workflowPath = path.resolve(__dirname, '.github', 'workflows', 'deploy.yml');
+      if (fs.existsSync(workflowPath)) {
+        const workflowContent = fs.readFileSync(workflowPath, 'utf-8');
+        await pushRawTextToGitHub(config, '.github/workflows/deploy.yml', workflowContent, '[Push Auto] Kemas kini GitHub Actions deploy workflow');
+      }
+    } catch (ciErr) {
+      console.warn('Gagal muat naik CI lockfile/workflow:', ciErr);
+    }
 
     config.lastSyncTime = new Date().toISOString();
     config.syncStatus = 'connected';
