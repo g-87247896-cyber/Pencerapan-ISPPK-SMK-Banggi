@@ -116,11 +116,34 @@ async function safeFetchJson<T = any>(res: Response): Promise<T> {
   if (!res.ok) {
     throw new Error(`Pelayan mengembalikan status ${res.status}`);
   }
-  const contentType = res.headers.get('content-type') || '';
-  if (!contentType.includes('application/json')) {
-    throw new Error('Respons bukan format JSON (menerima HTML/Teks)');
+  const text = await res.text();
+  const trimmed = text.trim();
+
+  if (trimmed.startsWith('<') || trimmed.toLowerCase().startsWith('<!doctype')) {
+    throw new Error('Respons mengandungi HTML bukannya JSON');
   }
-  return await res.json();
+
+  try {
+    return JSON.parse(trimmed);
+  } catch (err: any) {
+    throw new Error(`Gagal memproses data JSON: ${err.message}`);
+  }
+}
+
+// Helper to safely parse JSON string with HTML validation
+function safeParseJson<T = any>(str: string | null, fallback: T): T {
+  if (!str || typeof str !== 'string') return fallback;
+  const trimmed = str.trim();
+  if (trimmed.startsWith('<') || trimmed.toLowerCase().startsWith('<!doctype')) {
+    console.warn('String bukan JSON sah (menerima HTML):', trimmed.substring(0, 50));
+    return fallback;
+  }
+  try {
+    return JSON.parse(trimmed);
+  } catch (err) {
+    console.warn('Ralat sintaks penganalisisan JSON:', err);
+    return fallback;
+  }
 }
 
 // --- Client-Side Direct GitHub REST API Helpers (For Static Hosting / GitHub Pages / Offline) ---
@@ -128,14 +151,16 @@ function getLocalGitHubConfig(): GitHubConfigResponse {
   try {
     const data = localStorage.getItem(GITHUB_CLIENT_CONFIG_KEY);
     if (data) {
-      const parsed = JSON.parse(data);
-      return {
-        ...parsed,
-        hasToken: !!parsed.token,
-        tokenMasked: parsed.token
-          ? `${parsed.token.substring(0, 4)}...${parsed.token.substring(parsed.token.length - 4)}`
-          : '',
-      };
+      const parsed = safeParseJson<GitHubConfigResponse | null>(data, null);
+      if (parsed) {
+        return {
+          ...parsed,
+          hasToken: !!parsed.token,
+          tokenMasked: parsed.token
+            ? `${parsed.token.substring(0, 4)}...${parsed.token.substring(parsed.token.length - 4)}`
+            : '',
+        };
+      }
     }
   } catch {}
   return {
@@ -176,12 +201,11 @@ async function directGitHubTest(token: string, owner: string, repo: string) {
     Accept: 'application/vnd.github.v3+json',
   };
   const userRes = await fetch('https://api.github.com/user', { headers });
-  if (!userRes.ok) throw new Error('Token GitHub tidak sah atau telah tamat tempoh');
-  const userJson = await userRes.json();
+  const userJson = await safeFetchJson(userRes);
 
   if (owner && repo) {
     const repoRes = await fetch(`https://api.github.com/repos/${owner}/${repo}`, { headers });
-    if (!repoRes.ok) throw new Error(`Repositori ${owner}/${repo} tidak dijumpai atau tiada akses`);
+    await safeFetchJson(repoRes);
   }
 
   return { authenticatedUser: userJson.login, repo };
@@ -207,8 +231,8 @@ async function directGitHubPushFile(
   try {
     const existingRes = await fetch(`${url}?ref=${branch || 'main'}`, { headers });
     if (existingRes.ok) {
-      const existingData = await existingRes.json();
-      sha = existingData.sha;
+      const existingData = await safeFetchJson(existingRes).catch(() => null);
+      if (existingData && existingData.sha) sha = existingData.sha;
     }
   } catch {}
 
@@ -230,11 +254,7 @@ async function directGitHubPushFile(
     body: JSON.stringify(body),
   });
 
-  if (!res.ok) {
-    const errData = await res.json().catch(() => ({}));
-    throw new Error(errData.message || `Ralat GitHub API (${res.status})`);
-  }
-  return await res.json();
+  return await safeFetchJson(res);
 }
 
 async function directGitHubPullFile(
@@ -252,15 +272,14 @@ async function directGitHubPullFile(
   };
 
   const res = await fetch(url, { headers });
-  if (!res.ok) throw new Error(`Fail ${pathInRepo} tidak dijumpai di repositori GitHub`);
-  const data = await res.json();
+  const data = await safeFetchJson(res);
 
   if (data.content) {
     const cleanContent = data.content.replace(/\s/g, '');
     const binaryString = atob(cleanContent);
     const bytes = Uint8Array.from(binaryString, (c) => c.charCodeAt(0));
     const decodedText = new TextDecoder().decode(bytes);
-    return JSON.parse(decodedText);
+    return safeParseJson(decodedText, []);
   }
   throw new Error('Kandungan fail kosong');
 }
@@ -295,7 +314,7 @@ export const apiService = {
       // Fallback to offline cached data in localStorage
       try {
         const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
-        if (cached) return JSON.parse(cached);
+        return safeParseJson(cached, []);
       } catch {}
       return [];
     }
@@ -311,7 +330,7 @@ export const apiService = {
       try {
         const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
         if (cached) {
-          const list: PencerapanRecord[] = JSON.parse(cached);
+          const list: PencerapanRecord[] = safeParseJson(cached, []);
           const found = list.find((r) => r.id === id);
           if (found) return found;
         }
@@ -333,7 +352,7 @@ export const apiService = {
 
       try {
         const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
-        let list: PencerapanRecord[] = cached ? JSON.parse(cached) : [];
+        let list: PencerapanRecord[] = safeParseJson(cached, []);
         const idx = list.findIndex((r) => r.id === json.data.id);
         if (idx >= 0) {
           list[idx] = json.data;
@@ -400,7 +419,7 @@ export const apiService = {
 
       try {
         const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
-        let list: PencerapanRecord[] = cached ? JSON.parse(cached) : [];
+        let list: PencerapanRecord[] = safeParseJson(cached, []);
         const idx = list.findIndex((r) => r.id === fallbackRecord.id);
         if (idx >= 0) list[idx] = fallbackRecord;
         else list.unshift(fallbackRecord);
@@ -412,7 +431,7 @@ export const apiService = {
       if (ghConfig.enabled && ghConfig.token && ghConfig.owner && ghConfig.repo && ghConfig.autoSync) {
         try {
           const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
-          const fullList = cached ? JSON.parse(cached) : [fallbackRecord];
+          const fullList = safeParseJson(cached, [fallbackRecord]);
           directGitHubPushFile(
             ghConfig.token,
             ghConfig.owner,
@@ -441,7 +460,7 @@ export const apiService = {
         try {
           const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
           if (cached) {
-            const list: PencerapanRecord[] = JSON.parse(cached);
+            const list: PencerapanRecord[] = safeParseJson(cached, []);
             localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(list.filter((r) => r.id !== id)));
           }
         } catch {}
@@ -452,7 +471,7 @@ export const apiService = {
       try {
         const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
         if (cached) {
-          const list: PencerapanRecord[] = JSON.parse(cached);
+          const list: PencerapanRecord[] = safeParseJson(cached, []);
           localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(list.filter((r) => r.id !== id)));
           return true;
         }
@@ -564,7 +583,7 @@ export const apiService = {
   loadLocalDraft(): Partial<PencerapanRecord> | null {
     try {
       const data = localStorage.getItem(DRAFT_KEY);
-      return data ? JSON.parse(data) : null;
+      return safeParseJson(data, null);
     } catch {
       return null;
     }
@@ -595,7 +614,6 @@ export const apiService = {
       });
       return await safeFetchJson(res);
     } catch {
-      // Local fallback storage for static hosts like GitHub Pages
       saveLocalGitHubConfig(config);
       return { success: true, message: 'Tetapan backend GitHub berjaya disimpan di peranti!' };
     }
@@ -610,7 +628,6 @@ export const apiService = {
       });
       return await safeFetchJson(res);
     } catch {
-      // Direct browser-to-GitHub API test fallback
       const localCfg = getLocalGitHubConfig();
       const token = config.token || localCfg.token;
       const owner = config.owner || localCfg.owner;
@@ -640,7 +657,6 @@ export const apiService = {
       const res = await fetch('/api/github/push', { method: 'POST' });
       return await safeFetchJson(res);
     } catch {
-      // Direct browser-to-GitHub push fallback for static hosting
       const localCfg = getLocalGitHubConfig();
       if (!localCfg.token || !localCfg.owner || !localCfg.repo) {
         return { success: false, error: 'Sila masukkan Token PAT, Owner dan Repo GitHub dahulu.' };
@@ -648,7 +664,7 @@ export const apiService = {
 
       try {
         const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
-        const records = cached ? JSON.parse(cached) : [];
+        const records = safeParseJson(cached, []);
 
         await directGitHubPushFile(
           localCfg.token,
@@ -679,7 +695,6 @@ export const apiService = {
       const res = await fetch('/api/github/pull', { method: 'POST' });
       return await safeFetchJson(res);
     } catch {
-      // Direct browser-to-GitHub pull fallback for static hosting
       const localCfg = getLocalGitHubConfig();
       if (!localCfg.token || !localCfg.owner || !localCfg.repo) {
         return { success: false, error: 'Sila masukkan Token PAT, Owner dan Repo GitHub dahulu.' };
