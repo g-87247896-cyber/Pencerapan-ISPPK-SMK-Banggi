@@ -107,7 +107,7 @@ export const SenaraiPencerapan: React.FC<SenaraiPencerapanProps> = ({
               Pangkalan Data Pencerapan SMK Banggi
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Semua rekod skor ISPPK 2026 tersimpan secara automatik untuk rujukan pentadbir dan laporan PPD Kudat
+              Semua rekod skor ISPPK 2027 tersimpan secara automatik untuk rujukan pentadbir dan laporan PPD Kudat
             </p>
           </div>
 

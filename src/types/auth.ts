@@ -21,7 +21,7 @@ export const PENTADBIR_PRESETS: PentadbirUser[] = [
     namaSekolah: 'SMK BANGGI, KUDAT',
     peranan: 'Penolong Kanan',
     avatarUrl: '',
-    tarikhDaftarTT: '2026-02-01',
+    tarikhDaftarTT: '2027-02-01',
   },
   {
     id: 'user-pengetua',
@@ -32,7 +32,7 @@ export const PENTADBIR_PRESETS: PentadbirUser[] = [
     namaSekolah: 'SMK BANGGI, KUDAT',
     peranan: 'Pengetua',
     avatarUrl: '',
-    tarikhDaftarTT: '2026-01-15',
+    tarikhDaftarTT: '2027-01-15',
   },
   {
     id: 'user-gkmp-sains',
@@ -43,7 +43,7 @@ export const PENTADBIR_PRESETS: PentadbirUser[] = [
     namaSekolah: 'SMK BANGGI, KUDAT',
     peranan: 'GKMP',
     avatarUrl: '',
-    tarikhDaftarTT: '2026-02-10',
+    tarikhDaftarTT: '2027-02-10',
   },
   {
     id: 'user-gkmp-bahasa',
@@ -54,6 +54,6 @@ export const PENTADBIR_PRESETS: PentadbirUser[] = [
     namaSekolah: 'SMK BANGGI, KUDAT',
     peranan: 'GKMP',
     avatarUrl: '',
-    tarikhDaftarTT: '2026-02-20',
+    tarikhDaftarTT: '2027-02-20',
   },
 ];

@@ -36,7 +36,7 @@ export const ModalProfilPentadbir: React.FC<ModalProfilPentadbirProps> = ({
 
           <div className="mt-3 flex items-center justify-between px-2 text-xs text-slate-300">
             <span className="text-slate-400">
-              Sistem Pengurusan Skor Pencerapan ISPPK 2026 • SMK Banggi
+              Sistem Pengurusan Skor Pencerapan ISPPK 2027 • SMK Banggi
             </span>
             <button
               onClick={onLogout}

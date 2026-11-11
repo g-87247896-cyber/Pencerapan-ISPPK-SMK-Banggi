@@ -353,7 +353,7 @@ export const BorangPencerapan: React.FC<BorangPencerapanProps> = ({
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="px-2.5 py-0.5 text-xs font-bold rounded-full bg-indigo-100 text-indigo-800 border border-indigo-200">
-                ISPPK KPM 2026
+                ISPPK KPM 2027
               </span>
               <span className="text-xs text-slate-500 font-mono">
                 {record.id ? `ID: ${record.id}` : 'Rekod Baru'}
@@ -513,7 +513,7 @@ export const BorangPencerapan: React.FC<BorangPencerapanProps> = ({
             <Award className="w-6 h-6 text-amber-400 flex-shrink-0" />
             <div>
               <span className="text-[10px] uppercase tracking-wider text-slate-300 block">
-                Tahap Pembudayaan KBAT 2026:
+                Tahap Pembudayaan KBAT 2027:
               </span>
               <div className="text-sm font-bold text-white flex items-center gap-2">
                 <span>{tahapPencapaian}</span>
@@ -963,7 +963,7 @@ export const BorangPencerapan: React.FC<BorangPencerapanProps> = ({
           <div className="bg-indigo-50/70 border border-indigo-200 rounded-xl p-4 flex items-center justify-between">
             <div>
               <h3 className="text-sm font-bold text-indigo-950">
-                Bahagian E – Rubrik Penilaian Guru (SK@S 2026)
+                Bahagian E – Rubrik Penilaian Guru (SK@S 2027)
               </h3>
               <p className="text-xs text-indigo-800">
                 Skala Skor 1 (Kesedaran), 2 (Asas), 3 (Pertengahan), 4 (Lanjutan), 5 (Pakar).

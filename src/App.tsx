@@ -8,7 +8,6 @@ import { ReportingDashboard } from './components/ReportingDashboard';
 import { PanduanRubrikView } from './components/PanduanRubrikView';
 import { CetakInstrumenRasmi } from './components/CetakInstrumenRasmi';
 import { ModalKongsiRumusan } from './components/ModalKongsiRumusan';
-import { PetiMesejGuru } from './components/PetiMesejGuru';
 import { LoginPentadbir } from './components/LoginPentadbir';
 import { ModalProfilPentadbir } from './components/ModalProfilPentadbir';
 import { UploadTandatanganDigital } from './components/UploadTandatanganDigital';
@@ -25,8 +24,6 @@ import {
   ShieldCheck,
   School,
   ExternalLink,
-  MessageSquare,
-  Share2,
   PenTool,
   CheckCircle2,
   AlertCircle,
@@ -39,11 +36,10 @@ import {
 } from 'lucide-react';
 
 export default function App() {
-  const [activeView, setActiveView] = useState<'borang' | 'senarai' | 'statistik' | 'mesej' | 'tt-digital' | 'github' | 'panduan' | 'login'>('borang');
+  const [activeView, setActiveView] = useState<'borang' | 'senarai' | 'statistik' | 'tt-digital' | 'github' | 'panduan' | 'login'>('borang');
   const [editingRecord, setEditingRecord] = useState<PencerapanRecord | null>(null);
   const [printingRecord, setPrintingRecord] = useState<PencerapanRecord | null>(null);
   const [sharingRecord, setSharingRecord] = useState<PencerapanRecord | null>(null);
-  const [unreadMessagesCount, setUnreadMessagesCount] = useState<number>(0);
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
 
   // Authentication Gate State - Gated by SMK Banggi exclusive password (XEA5021)
@@ -76,15 +72,7 @@ export default function App() {
   const [showSignatureModal, setShowSignatureModal] = useState<boolean>(false);
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
 
-  const fetchUnreadCount = async () => {
-    try {
-      const res = await apiService.getTeacherMessages({ unreadOnly: true });
-      setUnreadMessagesCount(res.unreadCount);
-    } catch {}
-  };
-
   useEffect(() => {
-    fetchUnreadCount();
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
 
@@ -175,7 +163,6 @@ export default function App() {
           <ModalKongsiRumusan
             record={sharingRecord}
             onClose={() => setSharingRecord(null)}
-            onMessageSent={() => fetchUnreadCount()}
           />
         )}
       </>
@@ -200,7 +187,7 @@ export default function App() {
               <div>
                 <div className="flex items-center gap-2">
                   <h1 className="text-base sm:text-lg font-bold tracking-tight text-white flex items-center gap-1.5">
-                    e-Pencerapan ISPPK 2026
+                    e-Pencerapan ISPPK 2027
                   </h1>
                   <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-amber-400 text-slate-950 shadow-xs">
                     SMK BANGGI SAHAJA
@@ -230,7 +217,7 @@ export default function App() {
         <footer className="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
           <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left">
             <div>
-              Sistem e-Pencerapan ISPPK 2026 • <strong>SMK Banggi, Kudat, Sabah</strong>
+              Sistem e-Pencerapan ISPPK 2027 • <strong>SMK Banggi, Kudat, Sabah</strong>
             </div>
             <div className="text-slate-400 text-[11px]">
               Akses khusus untuk warga dan pentadbir SMK Banggi
@@ -260,7 +247,7 @@ export default function App() {
               <div>
                 <div className="flex items-center gap-2">
                   <h1 className="text-base sm:text-lg font-bold tracking-tight text-white flex items-center gap-1.5">
-                    e-Pencerapan ISPPK 2026
+                    e-Pencerapan ISPPK 2027
                   </h1>
                   <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-amber-400 text-slate-950 shadow-2xs">
                     SMK BANGGI
@@ -398,23 +385,6 @@ export default function App() {
             </button>
 
             <button
-              onClick={() => setActiveView('mesej')}
-              className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 whitespace-nowrap transition-colors relative ${
-                activeView === 'mesej'
-                  ? 'bg-indigo-700 text-white font-semibold shadow-xs'
-                  : 'text-slate-300 hover:text-white hover:bg-white/10'
-              }`}
-            >
-              <MessageSquare className="w-3.5 h-3.5" />
-              Peti Mesej Guru
-              {unreadMessagesCount > 0 && (
-                <span className="w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center animate-pulse">
-                  {unreadMessagesCount}
-                </span>
-              )}
-            </button>
-
-            <button
               onClick={() => setActiveView('tt-digital')}
               className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 whitespace-nowrap transition-colors ${
                 activeView === 'tt-digital'
@@ -447,7 +417,7 @@ export default function App() {
               }`}
             >
               <BookOpen className="w-3.5 h-3.5" />
-              Panduan Rubrik 2026
+              Panduan Rubrik 2027
             </button>
           </nav>
         </div>
@@ -480,10 +450,6 @@ export default function App() {
           <ReportingDashboard onViewTeacherObservation={handleViewTeacherObservation} />
         )}
 
-        {activeView === 'mesej' && (
-          <PetiMesejGuru onViewObservation={handleViewTeacherObservation} />
-        )}
-
         {activeView === 'tt-digital' && currentUser && (
           <div className="max-w-3xl mx-auto space-y-4">
             <UploadTandatanganDigital
@@ -502,7 +468,6 @@ export default function App() {
           <ModalKongsiRumusan
             record={sharingRecord}
             onClose={() => setSharingRecord(null)}
-            onMessageSent={() => fetchUnreadCount()}
           />
         )}
 
@@ -533,7 +498,7 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
           <div>
             <div className="font-semibold text-slate-700">
-              Sistem e-Pencerapan ISPPK 2026 • SMK Banggi, Kudat, Sabah
+              Sistem e-Pencerapan ISPPK 2027 • SMK Banggi, Kudat, Sabah
             </div>
             <div className="text-[11px] text-slate-400 mt-0.5">
               Instrumen Standard Penilaian Pembudayaan Kemahiran Berfikir Aras Tinggi (KBAT) dalam PdP Guru & Murid (KPM)

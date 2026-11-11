@@ -224,7 +224,7 @@ export const UploadTandatanganDigital: React.FC<UploadTandatanganDigitalProps> =
           Pengurusan Tandatangan Digital (TT Digital) Pentadbir
         </h3>
         <p className="text-xs text-slate-300 mt-0.5">
-          Muat naik foto tandatangan bertulis anda atau lukis terus untuk auto-isi dalam semua borang pencerapan rasmi ISPPK 2026.
+          Muat naik foto tandatangan bertulis anda atau lukis terus untuk auto-isi dalam semua borang pencerapan rasmi ISPPK 2027.
         </p>
       </div>
 

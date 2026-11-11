@@ -123,7 +123,7 @@ export const LoginPentadbir: React.FC<LoginPentadbirProps> = ({
                   </span>
                 </div>
                 <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">
-                  Portal e-Pencerapan ISPPK 2026
+                  Portal e-Pencerapan ISPPK 2027
                 </h2>
                 <p className="text-xs text-indigo-200 mt-0.5 font-medium">
                   SMK Banggi, Kudat, Sabah • <em>"Berilmu dan Berakhlak"</em>
@@ -347,7 +347,7 @@ export const LoginPentadbir: React.FC<LoginPentadbirProps> = ({
               <span className="font-bold text-slate-800 block mb-0.5">
                 Pengesahan Akses Sekolah (SMK Banggi)
               </span>
-              Sistem ini menyimpan skor pencerapan bilik darjah ISPPK 2026 terus ke pangkalan data sekolah secara automatik serta membolehkan tandatangan digital (TT) pencerap.
+              Sistem ini menyimpan skor pencerapan bilik darjah ISPPK 2027 terus ke pangkalan data sekolah secara automatik serta membolehkan tandatangan digital (TT) pencerap.
             </div>
           </div>
 
@@ -373,7 +373,7 @@ export const LoginPentadbir: React.FC<LoginPentadbirProps> = ({
 
             <div className="mt-3 text-center">
               <span className="text-[11px] text-slate-400">
-                SMK Banggi, Kudat, Sabah • Portal Rasmi Pencerapan ISPPK 2026
+                SMK Banggi, Kudat, Sabah • Portal Rasmi Pencerapan ISPPK 2027
               </span>
             </div>
           </div>

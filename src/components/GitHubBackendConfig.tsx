@@ -173,7 +173,7 @@ export const GitHubBackendConfig: React.FC<GitHubBackendConfigProps> = ({ onStat
                 Backend Pangkalan Data GitHub
               </h2>
               <p className="text-xs text-slate-300 mt-0.5">
-                Penyimpanan & penyegerakan rekod pencerapan ISPPK 2026 secara langsung ke Repositori GitHub.
+                Penyimpanan & penyegerakan rekod pencerapan ISPPK 2027 secara langsung ke Repositori GitHub.
               </p>
             </div>
           </div>

@@ -71,7 +71,7 @@ export const CetakInstrumenRasmi: React.FC<CetakInstrumenRasmiProps> = ({ record
               Kemahiran Berfikir Aras Tinggi (KBAT) dalam Pengajaran dan Pembelajaran
             </h1>
             <div className="text-sm font-semibold text-slate-600 mt-1">
-              (PdP Guru & Murid) — TAHUN 2026
+              (PdP Guru & Murid) — TAHUN 2027
             </div>
             <div className="mt-2.5 inline-flex items-center gap-2 px-3 py-1 bg-slate-100 rounded text-xs font-medium text-slate-700">
               <span>Sekolah: <strong className="text-slate-900">{record.namaSekolah || 'SMK BANGGI, KUDAT'}</strong></span>
@@ -549,7 +549,7 @@ export const CetakInstrumenRasmi: React.FC<CetakInstrumenRasmiProps> = ({ record
 
         {/* Verification Footer */}
         <div className="mt-8 pt-4 border-t border-slate-300 flex justify-between text-[10px] text-slate-500 font-mono">
-          <span>Sistem e-Pencerapan ISPPK 2026 SMK Banggi</span>
+          <span>Sistem e-Pencerapan ISPPK 2027 SMK Banggi</span>
           <span>ID Rekod: {record.id}</span>
           <span>Tarikh Cetakan: {new Date().toLocaleDateString('ms-MY')}</span>
         </div>

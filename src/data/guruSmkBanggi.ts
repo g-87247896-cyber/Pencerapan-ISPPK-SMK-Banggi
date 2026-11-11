@@ -1,6 +1,6 @@
 /**
  * Senarai Rasmi Guru & Kelas SMK Banggi, Kudat, Sabah
- * Tahun 2026
+ * Tahun 2027
  */
 
 export interface GuruInfo {

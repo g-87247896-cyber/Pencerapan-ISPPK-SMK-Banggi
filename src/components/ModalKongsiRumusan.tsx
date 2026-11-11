@@ -29,7 +29,7 @@ export const ModalKongsiRumusan: React.FC<ModalKongsiRumusanProps> = ({
   onClose,
   onMessageSent,
 }) => {
-  const [activeChannel, setActiveChannel] = useState<'inapp' | 'email' | 'whatsapp'>('inapp');
+  const [activeChannel, setActiveChannel] = useState<'whatsapp' | 'email' | 'inapp'>('whatsapp');
   const [copied, setCopied] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [sendSuccess, setSendSuccess] = useState(false);
@@ -56,13 +56,13 @@ export const ModalKongsiRumusan: React.FC<ModalKongsiRumusanProps> = ({
   if (improvements.length === 0) improvements.push('Teruskan mengekalkan amalan terbaik KBAT dan kongsikan strategi PdP bersama rakan panitia.');
 
   // Formulate default message
-  const defaultSubject = `[SMK BANGGI] Rumusan Dapatan Pencerapan PdP KBAT 2026 - ${record.namaGuru}`;
+  const defaultSubject = `[SMK BANGGI] Rumusan Dapatan Pencerapan PdP KBAT 2027 - ${record.namaGuru}`;
 
   const defaultKandungan = `Salam sejahtera Cikgu ${record.namaGuru},
 
 Tahniah diucapkan atas sesi pengajaran dan pembelajaran (PdP) yang telah dilaksanakan bagi kelas ${record.tingkatan} (${record.mataPelajaran}) pada ${record.tarikhPencerapan}. 
 
-Berikut adalah ringkasan skor dan dapatan pencerapan berdasarkan Instrumen Standard Penilaian Pembudayaan KBAT (ISPPK) 2026:
+Berikut adalah ringkasan skor dan dapatan pencerapan berdasarkan Instrumen Standard Penilaian Pembudayaan KBAT (ISPPK) 2027:
 
 📊 KEPUTUSAN KESELURUHAN:
 • Skor Keseluruhan: ${record.skorKeseluruhan} / 100 (${record.peratusPencapaian}%)
@@ -93,7 +93,7 @@ Pencerap: ${record.namaPencerap || 'Pentadbir'} (${record.jawatanPencerap || 'SM
 
   // Formatted WhatsApp Text
   const whatsappFormattedText = `*🏫 SMK BANGGI, KUDAT*
-*SLIP DAPATAN PENCERAPAN PdP KBAT 2026*
+*SLIP DAPATAN PENCERAPAN PdP KBAT 2027*
 ---------------------------------------
 👤 *Nama Guru:* ${record.namaGuru}
 📚 *Mata Pelajaran:* ${record.mataPelajaran} (${record.tingkatan})
@@ -382,7 +382,7 @@ _Tahniah dan terima kasih atas komitmen mendidik murid SMK Banggi!_`;
                 <CheckCircle2 className="w-4 h-4" /> Mesej berjaya dihantar ke Peti Mesej Guru!
               </span>
             ) : (
-              <span>SMK Banggi • e-Pencerapan ISPPK 2026</span>
+              <span>SMK Banggi • e-Pencerapan ISPPK 2027</span>
             )}
           </div>
 

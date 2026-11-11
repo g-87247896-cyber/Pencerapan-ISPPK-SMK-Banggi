@@ -52,7 +52,7 @@ export const DashboardStatistik: React.FC = () => {
       {/* Title */}
       <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
         <h2 className="text-xl font-bold text-slate-900 tracking-tight">
-          Analisis & Statistik Pembudayaan KBAT SMK Banggi 2026
+          Analisis & Statistik Pembudayaan KBAT SMK Banggi 2027
         </h2>
         <p className="text-xs text-slate-500 mt-1">
           Laporan pencapaian instrumen ISPPK berdasarkan pangkalan data pencerapan terkini sekolah
@@ -236,7 +236,7 @@ export const DashboardStatistik: React.FC = () => {
             <PieChart className="w-5 h-5 text-indigo-600" />
             <div>
               <h3 className="text-sm font-bold text-slate-900">
-                Taburan Tahap Pembudayaan KBAT 2026
+                Taburan Tahap Pembudayaan KBAT 2027
               </h3>
               <p className="text-xs text-slate-500">Bilangan guru mengikut tanda aras rasmi KPM</p>
             </div>

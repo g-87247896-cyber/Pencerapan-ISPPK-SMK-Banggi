@@ -133,9 +133,9 @@ export const ReportingDashboard: React.FC<ReportingDashboardProps> = ({
     } else if (preset === 'suku2') {
       setStartDate(`${currentYear}-04-01`);
       setEndDate(`${currentYear}-06-30`);
-    } else if (preset === 'tahun2026') {
-      setStartDate('2026-01-01');
-      setEndDate('2026-12-31');
+    } else if (preset === 'tahun2027') {
+      setStartDate('2027-01-01');
+      setEndDate('2027-12-31');
     }
   };
 
@@ -193,7 +193,7 @@ export const ReportingDashboard: React.FC<ReportingDashboardProps> = ({
               Laporan Prestasi Pencerapan Guru & Pembudayaan KBAT
             </h2>
             <p className="text-xs text-slate-500 mt-1 max-w-2xl">
-              Analisis menyeluruh purata skor setiap guru, trend prestasi sekolah, dan aspek penambahbaikan kritikal (ISPPK KPM 2026).
+              Analisis menyeluruh purata skor setiap guru, trend prestasi sekolah, dan aspek penambahbaikan kritikal (ISPPK KPM 2027).
             </p>
           </div>
 
@@ -244,9 +244,9 @@ export const ReportingDashboard: React.FC<ReportingDashboardProps> = ({
             {[
               { id: 'semua', label: 'Semua Masa' },
               { id: 'bulan_ini', label: 'Bulan Ini' },
-              { id: 'suku1', label: 'Suku 1 (Jan-Mac 2026)' },
-              { id: 'suku2', label: 'Suku 2 (Apr-Jun 2026)' },
-              { id: 'tahun2026', label: 'Tahun 2026' },
+              { id: 'suku1', label: 'Suku 1 (Jan-Mac 2027)' },
+              { id: 'suku2', label: 'Suku 2 (Apr-Jun 2027)' },
+              { id: 'tahun2027', label: 'Tahun 2027' },
             ].map((p) => (
               <button
                 key={p.id}
@@ -501,7 +501,7 @@ export const ReportingDashboard: React.FC<ReportingDashboardProps> = ({
                     Trend Prestasi Keseluruhan Sekolah (Mengikut Bulan)
                   </h3>
                   <p className="text-xs text-slate-500">
-                    Perubahan purata skor pembudayaan KBAT mengikut garis masa pencerapan tahun 2026
+                    Perubahan purata skor pembudayaan KBAT mengikut garis masa pencerapan tahun 2027
                   </p>
                 </div>
                 <span className="text-xs font-mono font-semibold px-2.5 py-1 rounded bg-slate-100 text-slate-700">

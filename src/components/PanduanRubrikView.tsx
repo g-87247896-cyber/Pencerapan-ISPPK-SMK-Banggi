@@ -23,7 +23,7 @@ export const PanduanRubrikView: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
             <h2 className="text-xl font-bold text-slate-900 tracking-tight">
-              Panduan Instrumen & Rubrik Penskoran ISPPK 2026
+              Panduan Instrumen & Rubrik Penskoran ISPPK 2027
             </h2>
             <p className="text-xs text-slate-500 mt-1">
               Rujukan Standard Kualiti Pengajaran dan Pembelajaran (SK@S) Pembudayaan KBAT KPM
