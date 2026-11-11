@@ -2,6 +2,7 @@ import { PencerapanRecord, TeacherMessage } from '../types/isppk';
 
 const LOCAL_STORAGE_KEY = 'smk_banggi_pencerapan_cache_v1';
 const DRAFT_KEY = 'smk_banggi_current_draft_v1';
+const GITHUB_CLIENT_CONFIG_KEY = 'smk_banggi_github_config_v1';
 
 export interface GitHubConfigResponse {
   enabled: boolean;
@@ -18,6 +19,7 @@ export interface GitHubConfigResponse {
   lastSyncTime?: string;
   lastCommitSha?: string;
   lastCommitMessage?: string;
+  lastError?: string;
 }
 
 export interface StatsResponse {
@@ -121,6 +123,148 @@ async function safeFetchJson<T = any>(res: Response): Promise<T> {
   return await res.json();
 }
 
+// --- Client-Side Direct GitHub REST API Helpers (For Static Hosting / GitHub Pages / Offline) ---
+function getLocalGitHubConfig(): GitHubConfigResponse {
+  try {
+    const data = localStorage.getItem(GITHUB_CLIENT_CONFIG_KEY);
+    if (data) {
+      const parsed = JSON.parse(data);
+      return {
+        ...parsed,
+        hasToken: !!parsed.token,
+        tokenMasked: parsed.token
+          ? `${parsed.token.substring(0, 4)}...${parsed.token.substring(parsed.token.length - 4)}`
+          : '',
+      };
+    }
+  } catch {}
+  return {
+    enabled: true,
+    token: '',
+    tokenMasked: '',
+    hasToken: false,
+    owner: '',
+    repo: 'Pencerapan-ISPPK-SMK-Banggi',
+    branch: 'main',
+    pencerapanPath: 'data/pencerapan_smk_banggi.json',
+    messagesPath: 'data/mesej_guru_smk_banggi.json',
+    autoSync: true,
+    syncStatus: 'disconnected',
+  };
+}
+
+function saveLocalGitHubConfig(config: Partial<GitHubConfigResponse>): GitHubConfigResponse {
+  const current = getLocalGitHubConfig();
+  const updated: GitHubConfigResponse = {
+    ...current,
+    ...config,
+    hasToken: !!(config.token || current.token),
+  };
+  if (config.token) {
+    updated.token = config.token;
+    updated.tokenMasked = `${config.token.substring(0, 4)}...${config.token.substring(config.token.length - 4)}`;
+  }
+  try {
+    localStorage.setItem(GITHUB_CLIENT_CONFIG_KEY, JSON.stringify(updated));
+  } catch {}
+  return updated;
+}
+
+async function directGitHubTest(token: string, owner: string, repo: string) {
+  const headers = {
+    Authorization: `token ${token}`,
+    Accept: 'application/vnd.github.v3+json',
+  };
+  const userRes = await fetch('https://api.github.com/user', { headers });
+  if (!userRes.ok) throw new Error('Token GitHub tidak sah atau telah tamat tempoh');
+  const userJson = await userRes.json();
+
+  if (owner && repo) {
+    const repoRes = await fetch(`https://api.github.com/repos/${owner}/${repo}`, { headers });
+    if (!repoRes.ok) throw new Error(`Repositori ${owner}/${repo} tidak dijumpai atau tiada akses`);
+  }
+
+  return { authenticatedUser: userJson.login, repo };
+}
+
+async function directGitHubPushFile(
+  token: string,
+  owner: string,
+  repo: string,
+  branch: string,
+  pathInRepo: string,
+  jsonContent: any,
+  commitMessage: string
+) {
+  const cleanPath = pathInRepo.replace(/^\/+/, '');
+  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${cleanPath}`;
+  const headers: Record<string, string> = {
+    Authorization: `token ${token}`,
+    Accept: 'application/vnd.github.v3+json',
+  };
+
+  let sha: string | undefined = undefined;
+  try {
+    const existingRes = await fetch(`${url}?ref=${branch || 'main'}`, { headers });
+    if (existingRes.ok) {
+      const existingData = await existingRes.json();
+      sha = existingData.sha;
+    }
+  } catch {}
+
+  const jsonString = JSON.stringify(jsonContent, null, 2);
+  const utf8Bytes = new TextEncoder().encode(jsonString);
+  const binaryString = String.fromCharCode(...utf8Bytes);
+  const base64Content = btoa(binaryString);
+
+  const body: any = {
+    message: commitMessage,
+    content: base64Content,
+    branch: branch || 'main',
+  };
+  if (sha) body.sha = sha;
+
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.message || `Ralat GitHub API (${res.status})`);
+  }
+  return await res.json();
+}
+
+async function directGitHubPullFile(
+  token: string,
+  owner: string,
+  repo: string,
+  branch: string,
+  pathInRepo: string
+) {
+  const cleanPath = pathInRepo.replace(/^\/+/, '');
+  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${cleanPath}?ref=${branch || 'main'}`;
+  const headers = {
+    Authorization: `token ${token}`,
+    Accept: 'application/vnd.github.v3+json',
+  };
+
+  const res = await fetch(url, { headers });
+  if (!res.ok) throw new Error(`Fail ${pathInRepo} tidak dijumpai di repositori GitHub`);
+  const data = await res.json();
+
+  if (data.content) {
+    const cleanContent = data.content.replace(/\s/g, '');
+    const binaryString = atob(cleanContent);
+    const bytes = Uint8Array.from(binaryString, (c) => c.charCodeAt(0));
+    const decodedText = new TextDecoder().decode(bytes);
+    return JSON.parse(decodedText);
+  }
+  throw new Error('Kandungan fail kosong');
+}
+
 export const apiService = {
   // Fetch all pencerapan records
   async getPencerapanList(params?: {
@@ -141,7 +285,6 @@ export const apiService = {
       const res = await fetch(url.toString());
       const json = await safeFetchJson(res);
       if (json.data && Array.isArray(json.data)) {
-        // Cache in localStorage for offline resilience
         try {
           localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(json.data));
         } catch {}
@@ -149,8 +292,7 @@ export const apiService = {
       }
       return [];
     } catch (err) {
-      console.warn('Pelayan tidak dapat dihubungi, memuat dari pangkalan data tempatan:', err);
-      // Fallback to offline cached data
+      // Fallback to offline cached data in localStorage
       try {
         const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
         if (cached) return JSON.parse(cached);
@@ -166,7 +308,6 @@ export const apiService = {
       const json = await safeFetchJson(res);
       return json.data || null;
     } catch {
-      // Fallback to cache
       try {
         const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
         if (cached) {
@@ -190,7 +331,6 @@ export const apiService = {
 
       const json = await safeFetchJson(res);
 
-      // Update local storage cache
       try {
         const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
         let list: PencerapanRecord[] = cached ? JSON.parse(cached) : [];
@@ -205,8 +345,7 @@ export const apiService = {
 
       return json;
     } catch (error) {
-      console.warn('Ralat sambungan pelayan, menyimpan sandaran ke peranti:', error);
-      // Generate client-side fallback record
+      // Generate client-side fallback record for static/offline hosting
       const now = new Date().toISOString();
       const fallbackRecord: PencerapanRecord = {
         id: record.id || `smkb-offline-${Date.now()}`,
@@ -268,10 +407,28 @@ export const apiService = {
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(list));
       } catch {}
 
+      // Background Direct GitHub Sync if token is configured on client
+      const ghConfig = getLocalGitHubConfig();
+      if (ghConfig.enabled && ghConfig.token && ghConfig.owner && ghConfig.repo && ghConfig.autoSync) {
+        try {
+          const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
+          const fullList = cached ? JSON.parse(cached) : [fallbackRecord];
+          directGitHubPushFile(
+            ghConfig.token,
+            ghConfig.owner,
+            ghConfig.repo,
+            ghConfig.branch || 'main',
+            ghConfig.pencerapanPath || 'data/pencerapan_smk_banggi.json',
+            fullList,
+            `[Auto Sync Web] Pencerapan ${fallbackRecord.namaGuru} (${fallbackRecord.id})`
+          ).catch(() => {});
+        } catch {}
+      }
+
       return {
         success: true,
         data: fallbackRecord,
-        message: 'Tersimpan dalam storan sandaran peranti luar talian (akan disinkronkan ke pangkalan data sekolah)',
+        message: 'Tersimpan dalam storan sandaran peranti (akan disinkronkan ke pangkalan data sekolah)',
       };
     }
   },
@@ -292,7 +449,6 @@ export const apiService = {
       }
       return false;
     } catch {
-      // Local removal fallback
       try {
         const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
         if (cached) {
@@ -315,7 +471,7 @@ export const apiService = {
     }
   },
 
-  // Get Reporting Dashboard with Date Range, Subject, Evaluator, and Teacher Filters
+  // Get Reporting Dashboard
   async getDashboardReport(filters?: {
     startDate?: string;
     endDate?: string;
@@ -420,15 +576,14 @@ export const apiService = {
     } catch {}
   },
 
-  // GitHub Backend Methods
+  // GitHub Backend Methods (Dual Mode: Server API with Client-Side Direct REST API Fallback)
   async getGitHubConfig(): Promise<GitHubConfigResponse | null> {
     try {
       const res = await fetch('/api/github/config');
       const json = await safeFetchJson(res);
-      return json.config || null;
-    } catch {
-      return null;
-    }
+      if (json.config) return json.config;
+    } catch {}
+    return getLocalGitHubConfig();
   },
 
   async saveGitHubConfig(config: Partial<GitHubConfigResponse>): Promise<{ success: boolean; message?: string; error?: string }> {
@@ -439,8 +594,10 @@ export const apiService = {
         body: JSON.stringify(config),
       });
       return await safeFetchJson(res);
-    } catch (err: any) {
-      return { success: false, error: err.message || 'Gagal menyimpan tetapan GitHub' };
+    } catch {
+      // Local fallback storage for static hosts like GitHub Pages
+      saveLocalGitHubConfig(config);
+      return { success: true, message: 'Tetapan backend GitHub berjaya disimpan di peranti!' };
     }
   },
 
@@ -452,8 +609,29 @@ export const apiService = {
         body: JSON.stringify(config),
       });
       return await safeFetchJson(res);
-    } catch (err: any) {
-      return { success: false, error: err.message || 'Gagal menguji sambungan GitHub' };
+    } catch {
+      // Direct browser-to-GitHub API test fallback
+      const localCfg = getLocalGitHubConfig();
+      const token = config.token || localCfg.token;
+      const owner = config.owner || localCfg.owner;
+      const repo = config.repo || localCfg.repo;
+
+      if (!token) {
+        return { success: false, error: 'Sila masukkan Token Personal Access GitHub dahulu.' };
+      }
+
+      try {
+        const testRes = await directGitHubTest(token, owner, repo);
+        saveLocalGitHubConfig({ ...config, syncStatus: 'connected' });
+        return {
+          success: true,
+          message: `Sambungan terus ke GitHub API berjaya! Disahkan sebagai ${testRes.authenticatedUser}.`,
+          authenticatedUser: testRes.authenticatedUser,
+          repo: testRes.repo,
+        };
+      } catch (err: any) {
+        return { success: false, error: err.message || 'Gagal menyambung ke GitHub REST API' };
+      }
     }
   },
 
@@ -461,8 +639,38 @@ export const apiService = {
     try {
       const res = await fetch('/api/github/push', { method: 'POST' });
       return await safeFetchJson(res);
-    } catch (err: any) {
-      return { success: false, error: err.message || 'Gagal muat naik ke GitHub' };
+    } catch {
+      // Direct browser-to-GitHub push fallback for static hosting
+      const localCfg = getLocalGitHubConfig();
+      if (!localCfg.token || !localCfg.owner || !localCfg.repo) {
+        return { success: false, error: 'Sila masukkan Token PAT, Owner dan Repo GitHub dahulu.' };
+      }
+
+      try {
+        const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
+        const records = cached ? JSON.parse(cached) : [];
+
+        await directGitHubPushFile(
+          localCfg.token,
+          localCfg.owner,
+          localCfg.repo,
+          localCfg.branch || 'main',
+          localCfg.pencerapanPath || 'data/pencerapan_smk_banggi.json',
+          records,
+          `[Push Web Direct] Pangkalan data pencerapan SMK Banggi (${records.length} rekod)`
+        );
+
+        const nowIso = new Date().toISOString();
+        saveLocalGitHubConfig({ syncStatus: 'connected', lastSyncTime: nowIso });
+
+        return {
+          success: true,
+          message: `Semua ${records.length} rekod pencerapan berjaya dimuat naik secara terus ke GitHub (${localCfg.owner}/${localCfg.repo})!`,
+          lastSyncTime: nowIso,
+        };
+      } catch (err: any) {
+        return { success: false, error: err.message || 'Gagal muat naik terus ke GitHub' };
+      }
     }
   },
 
@@ -470,13 +678,43 @@ export const apiService = {
     try {
       const res = await fetch('/api/github/pull', { method: 'POST' });
       return await safeFetchJson(res);
-    } catch (err: any) {
-      return { success: false, error: err.message || 'Gagal menarik data dari GitHub' };
+    } catch {
+      // Direct browser-to-GitHub pull fallback for static hosting
+      const localCfg = getLocalGitHubConfig();
+      if (!localCfg.token || !localCfg.owner || !localCfg.repo) {
+        return { success: false, error: 'Sila masukkan Token PAT, Owner dan Repo GitHub dahulu.' };
+      }
+
+      try {
+        const pulledRecords = await directGitHubPullFile(
+          localCfg.token,
+          localCfg.owner,
+          localCfg.repo,
+          localCfg.branch || 'main',
+          localCfg.pencerapanPath || 'data/pencerapan_smk_banggi.json'
+        );
+
+        if (Array.isArray(pulledRecords)) {
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(pulledRecords));
+        }
+
+        const nowIso = new Date().toISOString();
+        saveLocalGitHubConfig({ syncStatus: 'connected', lastSyncTime: nowIso });
+
+        return {
+          success: true,
+          message: `Pangkalan data berjaya ditarik dan disegerakkan daripada GitHub (${localCfg.owner}/${localCfg.repo})! Total: ${pulledRecords.length || 0} rekod.`,
+          count: pulledRecords.length || 0,
+          lastSyncTime: nowIso,
+        };
+      } catch (err: any) {
+        return { success: false, error: err.message || 'Gagal menarik data dari GitHub' };
+      }
     }
   },
 };
 
-// Image Compression Helper (Downsamples to max 1280px and quality 0.82 JPEG)
+// Image Compression Helper
 export function compressImageFile(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -510,7 +748,6 @@ export function compressImageFile(file: File): Promise<string> {
         }
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Convert to web-friendly JPEG
         const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
         resolve(compressedDataUrl);
       };
