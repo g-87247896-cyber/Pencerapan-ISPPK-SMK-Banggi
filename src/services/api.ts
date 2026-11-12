@@ -1,4 +1,5 @@
 import { PencerapanRecord, TeacherMessage } from '../types/isppk';
+import { googleWorkspaceService, getLocalGoogleWorkspaceConfig } from './googleWorkspace';
 
 const LOCAL_STORAGE_KEY = 'smk_banggi_pencerapan_cache_v1';
 const DRAFT_KEY = 'smk_banggi_current_draft_v1';
@@ -131,7 +132,7 @@ async function safeFetchJson<T = any>(res: Response): Promise<T> {
 }
 
 // Helper to safely parse JSON string with HTML validation
-function safeParseJson<T = any>(str: string | null, fallback: T): T {
+export function safeParseJson<T = any>(str: string | null, fallback: T): T {
   if (!str || typeof str !== 'string') return fallback;
   const trimmed = str.trim();
   if (trimmed.startsWith('<') || trimmed.toLowerCase().startsWith('<!doctype')) {
@@ -426,21 +427,13 @@ export const apiService = {
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(list));
       } catch {}
 
-      // Background Direct GitHub Sync if token is configured on client
-      const ghConfig = getLocalGitHubConfig();
-      if (ghConfig.enabled && ghConfig.token && ghConfig.owner && ghConfig.repo && ghConfig.autoSync) {
+      // Background Auto-Sync to Google Workspace (Google Sheets) if connected
+      const gwConfig = getLocalGoogleWorkspaceConfig();
+      if (gwConfig.autoSync && googleWorkspaceService.hasAccessToken()) {
         try {
           const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
           const fullList = safeParseJson(cached, [fallbackRecord]);
-          directGitHubPushFile(
-            ghConfig.token,
-            ghConfig.owner,
-            ghConfig.repo,
-            ghConfig.branch || 'main',
-            ghConfig.pencerapanPath || 'data/pencerapan_smk_banggi.json',
-            fullList,
-            `[Auto Sync Web] Pencerapan ${fallbackRecord.namaGuru} (${fallbackRecord.id})`
-          ).catch(() => {});
+          googleWorkspaceService.pushToGoogleSheets(fullList).catch(() => {});
         } catch {}
       }
 

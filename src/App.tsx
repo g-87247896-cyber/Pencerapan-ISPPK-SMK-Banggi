@@ -11,7 +11,7 @@ import { ModalKongsiRumusan } from './components/ModalKongsiRumusan';
 import { LoginPentadbir } from './components/LoginPentadbir';
 import { ModalProfilPentadbir } from './components/ModalProfilPentadbir';
 import { UploadTandatanganDigital } from './components/UploadTandatanganDigital';
-import { GitHubBackendConfig } from './components/GitHubBackendConfig';
+import { GoogleWorkspaceBackendConfig } from './components/GoogleWorkspaceBackendConfig';
 import { apiService } from './services/api';
 import {
   FileEdit,
@@ -32,11 +32,12 @@ import {
   ChevronDown,
   LogIn,
   Lock,
-  Github,
+  FileSpreadsheet,
+  HardDrive,
 } from 'lucide-react';
 
 export default function App() {
-  const [activeView, setActiveView] = useState<'borang' | 'senarai' | 'statistik' | 'tt-digital' | 'github' | 'panduan' | 'login'>('borang');
+  const [activeView, setActiveView] = useState<'borang' | 'senarai' | 'statistik' | 'tt-digital' | 'google-workspace' | 'panduan' | 'login'>('borang');
   const [editingRecord, setEditingRecord] = useState<PencerapanRecord | null>(null);
   const [printingRecord, setPrintingRecord] = useState<PencerapanRecord | null>(null);
   const [sharingRecord, setSharingRecord] = useState<PencerapanRecord | null>(null);
@@ -397,15 +398,15 @@ export default function App() {
             </button>
 
             <button
-              onClick={() => setActiveView('github')}
+              onClick={() => setActiveView('google-workspace')}
               className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 whitespace-nowrap transition-colors ${
-                activeView === 'github'
+                activeView === 'google-workspace'
                   ? 'bg-indigo-700 text-white font-semibold shadow-xs'
                   : 'text-slate-300 hover:text-white hover:bg-white/10'
               }`}
             >
-              <Github className="w-3.5 h-3.5 text-amber-300" />
-              Backend GitHub
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-300" />
+              Google Sheets & Drive
             </button>
 
             <button
@@ -459,7 +460,7 @@ export default function App() {
           </div>
         )}
 
-        {activeView === 'github' && <GitHubBackendConfig />}
+        {activeView === 'google-workspace' && <GoogleWorkspaceBackendConfig />}
 
         {activeView === 'panduan' && <PanduanRubrikView />}
 
